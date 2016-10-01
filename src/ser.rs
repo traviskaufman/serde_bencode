@@ -1,6 +1,7 @@
 use std::io;
 
 use itoa;
+use serde::de::Type;
 use serde::ser;
 
 use super::error::{Error, ErrorCode, Result};
@@ -19,6 +20,7 @@ pub struct Serializer<W> {
     formatter: Formatter,
 }
 
+/// TODO!!! Lexocographically-ordered dictionaries. Yuck. Use BTreeMap
 impl<W> Serializer<W> where W: io::Write {
     #[inline]
     pub fn new(writer: W, formatter: Formatter) -> Self {
@@ -45,7 +47,7 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
 
     #[inline]
     fn serialize_bool(&mut self, _: bool) -> Result<()> {
-        Err(Error::Syntax(ErrorCode::Custom("Unsupported".to_string())))
+        Err(Error::Ser(ErrorCode::UnsupportedType(Type::Bool)))
     }
 
     #[inline]
@@ -96,7 +98,7 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     #[inline]
     fn serialize_u64(&mut self, v: u64) -> Result<()> {
         if v > i64::max_value() as u64 {
-            return Err(Error::Syntax(ErrorCode::Custom("Unsupported integer value".to_string())));
+            return Err(Error::Ser(ErrorCode::NumberOutOfRange(v)));
         }
         bencode_int!(&mut self.writer, v)
     }
@@ -132,12 +134,12 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
 
     #[inline]
     fn serialize_unit(&mut self) -> Result<()> {
-        self.serialize_str("")
+        Ok(())
     }
 
     #[inline]
     fn serialize_unit_struct(&mut self, _name: &'static str) -> Result<()> {
-        self.serialize_unit()
+        self.serialize_map(Some(0)).map(|_| ())
     }
 
     #[inline]
@@ -369,19 +371,19 @@ impl Formatter {
     }
 
     pub fn dict_open<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
-        write!(w, "d{{").map_err(From::from)
+        write!(w, "d").map_err(From::from)
     }
 
     pub fn dict_close<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
-        write!(w, "}}e").map_err(From::from)
+        write!(w, "e").map_err(From::from)
     }
 
     pub fn list_open<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
-        write!(w, "l[").map_err(From::from)
+        write!(w, "l").map_err(From::from)
     }
 
     pub fn list_close<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
-        write!(w, "]e").map_err(From::from)
+        write!(w, "e").map_err(From::from)
     }
 }
 

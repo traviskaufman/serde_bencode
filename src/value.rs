@@ -3,6 +3,8 @@
 
 use std::collections::HashMap;
 
+use serde::de::{Deserialize, Deserializer};
+
 /// Value represents a Bencode value type. BEncode has 4 types: Strings, Integers, Lists, and
 /// Dicts. Each is represented here! Strings will be converted to ascii. All numbers will be
 /// converted to i64s.

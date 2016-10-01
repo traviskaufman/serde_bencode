@@ -11,4 +11,6 @@ fn main() {
     };
     let serialized = bencode::to_string(&c).unwrap();
     println!("serialized = {}", serialized);
+    let deserialized: Complex = bencode::from_string(serialized).unwrap();
+    println!("deserialized = {:?}", deserialized);
 }
