@@ -21,12 +21,14 @@ pub struct Serializer<W> {
 }
 
 /// TODO!!! Lexocographically-ordered dictionaries. Yuck. Use BTreeMap
-impl<W> Serializer<W> where W: io::Write {
+impl<W> Serializer<W>
+    where W: io::Write
+{
     #[inline]
     pub fn new(writer: W, formatter: Formatter) -> Self {
         Serializer {
             writer: writer,
-            formatter: formatter
+            formatter: formatter,
         }
     }
 
@@ -35,7 +37,9 @@ impl<W> Serializer<W> where W: io::Write {
     }
 }
 
-impl<W> ser::Serializer for Serializer<W> where W: io::Write {
+impl<W> ser::Serializer for Serializer<W>
+    where W: io::Write
+{
     type Error = Error;
     type TupleState = State;
     type SeqState = State;
@@ -143,18 +147,29 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_unit_variant(&mut self, _name: &'static str, _variant_index: usize, _variant: &'static str) -> Result<()> {
+    fn serialize_unit_variant(&mut self,
+                              _name: &'static str,
+                              _variant_index: usize,
+                              _variant: &'static str)
+                              -> Result<()> {
         self.serialize_unit()
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ser::Serialize>(&mut self, _name: &'static str, value: T) -> Result<()> {
+    fn serialize_newtype_struct<T: ser::Serialize>(&mut self,
+                                                   _name: &'static str,
+                                                   value: T)
+                                                   -> Result<()> {
         value.serialize(self)
     }
 
     #[inline]
-    fn serialize_newtype_variant<T: ser::Serialize>(
-            &mut self, _name: &'static str, _variant_index: usize, variant: &'static str, value: T) -> Result<()> {
+    fn serialize_newtype_variant<T: ser::Serialize>(&mut self,
+                                                    _name: &'static str,
+                                                    _variant_index: usize,
+                                                    variant: &'static str,
+                                                    value: T)
+                                                    -> Result<()> {
         try!(self.formatter.dict_open(&mut self.writer));
         try!(self.serialize_str(variant));
         try!(value.serialize(self));
@@ -206,7 +221,10 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_tuple_elt<T: ser::Serialize>(&mut self, state: &mut State, value: T) -> Result<()> {
+    fn serialize_tuple_elt<T: ser::Serialize>(&mut self,
+                                              state: &mut State,
+                                              value: T)
+                                              -> Result<()> {
         self.serialize_seq_elt(state, value)
     }
 
@@ -221,7 +239,10 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_tuple_struct_elt<T: ser::Serialize>(&mut self, state: &mut State, value: T) -> Result<()> {
+    fn serialize_tuple_struct_elt<T: ser::Serialize>(&mut self,
+                                                     state: &mut State,
+                                                     value: T)
+                                                     -> Result<()> {
         self.serialize_seq_elt(state, value)
     }
 
@@ -231,24 +252,22 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_tuple_variant(
-        &mut self,
-        _name: &'static str,
-        _variant_index: usize,
-        variant: &'static str,
-        len: usize
-    ) -> Result<State> {
+    fn serialize_tuple_variant(&mut self,
+                               _name: &'static str,
+                               _variant_index: usize,
+                               variant: &'static str,
+                               len: usize)
+                               -> Result<State> {
         try!(self.formatter.dict_open(&mut self.writer));
         try!(self.serialize_str(variant));
         self.serialize_seq(Some(len))
     }
 
     #[inline]
-    fn serialize_tuple_variant_elt<T: ser::Serialize>(
-        &mut self,
-        state: &mut State,
-        value: T
-    ) -> Result<()> {
+    fn serialize_tuple_variant_elt<T: ser::Serialize>(&mut self,
+                                                      state: &mut State,
+                                                      value: T)
+                                                      -> Result<()> {
         self.serialize_seq_elt(state, value)
     }
 
@@ -271,11 +290,7 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_map_key<T: ser::Serialize>(
-        &mut self,
-        state: &mut State,
-        key: T
-    ) -> Result<()> {
+    fn serialize_map_key<T: ser::Serialize>(&mut self, state: &mut State, key: T) -> Result<()> {
         *state = State::Rest;
 
         // FIXME: Copy over MapKeySerializer?
@@ -283,11 +298,7 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_map_value<T: ser::Serialize>(
-        &mut self,
-        _: &mut State,
-        value: T
-    ) -> Result<()> {
+    fn serialize_map_value<T: ser::Serialize>(&mut self, _: &mut State, value: T) -> Result<()> {
         value.serialize(self)
     }
 
@@ -300,21 +311,16 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_struct(
-        &mut self,
-        _name: &'static str,
-        len: usize
-    ) -> Result<State> {
+    fn serialize_struct(&mut self, _name: &'static str, len: usize) -> Result<State> {
         self.serialize_map(Some(len))
     }
 
     #[inline]
-    fn serialize_struct_elt<V: ser::Serialize>(
-        &mut self,
-        state: &mut State,
-        key: &'static str,
-        value: V
-    ) -> Result<()> {
+    fn serialize_struct_elt<V: ser::Serialize>(&mut self,
+                                               state: &mut State,
+                                               key: &'static str,
+                                               value: V)
+                                               -> Result<()> {
         try!(self.serialize_map_key(state, key));
         self.serialize_map_value(state, value)
     }
@@ -325,25 +331,23 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
     }
 
     #[inline]
-    fn serialize_struct_variant(
-        &mut self,
-        _name: &'static str,
-        _variant_index: usize,
-        variant: &'static str,
-        len: usize
-    ) -> Result<State> {
+    fn serialize_struct_variant(&mut self,
+                                _name: &'static str,
+                                _variant_index: usize,
+                                variant: &'static str,
+                                len: usize)
+                                -> Result<State> {
         try!(self.formatter.dict_open(&mut self.writer));
         try!(self.serialize_str(variant));
         self.serialize_map(Some(len))
     }
 
     #[inline]
-    fn serialize_struct_variant_elt<V: ser::Serialize>(
-        &mut self,
-        state: &mut State,
-        key: &'static str,
-        value: V
-    ) -> Result<()> {
+    fn serialize_struct_variant_elt<V: ser::Serialize>(&mut self,
+                                                       state: &mut State,
+                                                       key: &'static str,
+                                                       value: V)
+                                                       -> Result<()> {
         self.serialize_struct_elt(state, key, value)
     }
 
@@ -359,35 +363,47 @@ impl<W> ser::Serializer for Serializer<W> where W: io::Write {
 pub enum State {
     Empty,
     First,
-    Rest
+    Rest,
 }
 
 #[derive(Clone, Debug)]
 pub struct Formatter;
 
 impl Formatter {
-    pub fn string<W>(&self, w: &mut W, s: &str) -> Result<()> where W: io::Write {
+    pub fn string<W>(&self, w: &mut W, s: &str) -> Result<()>
+        where W: io::Write
+    {
         write!(w, "{}:{}", s.len(), s).map_err(From::from)
     }
 
-    pub fn dict_open<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
+    pub fn dict_open<W>(&self, w: &mut W) -> Result<()>
+        where W: io::Write
+    {
         write!(w, "d").map_err(From::from)
     }
 
-    pub fn dict_close<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
+    pub fn dict_close<W>(&self, w: &mut W) -> Result<()>
+        where W: io::Write
+    {
         write!(w, "e").map_err(From::from)
     }
 
-    pub fn list_open<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
+    pub fn list_open<W>(&self, w: &mut W) -> Result<()>
+        where W: io::Write
+    {
         write!(w, "l").map_err(From::from)
     }
 
-    pub fn list_close<W>(&self, w: &mut W) -> Result<()> where W: io::Write {
+    pub fn list_close<W>(&self, w: &mut W) -> Result<()>
+        where W: io::Write
+    {
         write!(w, "e").map_err(From::from)
     }
 }
 
-pub fn to_writer<W: ?Sized + io::Write, T: ser::Serialize>(writer: &mut W, value: &T) -> Result<()> {
+pub fn to_writer<W: ?Sized + io::Write, T: ser::Serialize>(writer: &mut W,
+                                                           value: &T)
+                                                           -> Result<()> {
     let mut ser = Serializer::new(writer, Formatter);
     try!(value.serialize(&mut ser));
     Ok(())

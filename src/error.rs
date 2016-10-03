@@ -71,7 +71,7 @@ impl error::Error for Error {
             Error::Io(ref err) => Some(err),
             Error::Utf8(ref err) => Some(err),
             Error::Value(ref err) => Some(err),
-            _ => None
+            _ => None,
         }
     }
 }
