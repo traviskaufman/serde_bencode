@@ -5,8 +5,8 @@ authors = ["Travis Kaufman <travis.kaufman@gmail.com>"]
 build = "build.rs"
 
 [build-dependencies]
-serde_codegen = "*"
+serde_codegen = "^0.8.9"
 
 [dependencies]
-serde = "*"
-itoa = "*"
+serde = "^0.8.8"
+itoa = "^0.1.1"

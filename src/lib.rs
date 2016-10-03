@@ -12,7 +12,6 @@ extern crate serde;
 extern crate itoa;
 
 pub mod error;
-pub mod value;
 pub mod read;
 pub mod ser;
 pub mod de;
