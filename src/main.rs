@@ -9,6 +9,7 @@ fn main() {
         i: 42,
         v: vec![Point{ x: 1, y: 2}, Point{ x: 4, y: 7}, Point{ x: 8, y: 19 }]
     };
+    println!("original = {:?}", c);
     let serialized = bencode::to_string(&c).unwrap();
     println!("serialized = {}", serialized);
     let deserialized: Complex = bencode::from_string(serialized).unwrap();
