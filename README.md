@@ -3,7 +3,7 @@
 A [bencode](https://en.wikipedia.org/wiki/Bencode) serialization/deserialization library for Rust using
 [serde](https://serde.rs/).
 
-> Status: Work in Progress.
+> Status: Work in Progress. Check out the [1.0.0 Milestone](https://github.com/traviskaufman/bencode-rs/milestone/1)!
 
 ## Usage
 
