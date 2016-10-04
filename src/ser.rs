@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::io;
 
 use itoa;
@@ -355,6 +356,51 @@ impl<W> ser::Serializer for Serializer<W>
     fn serialize_struct_variant_end(&mut self, state: State) -> Result<()> {
         try!(self.serialize_struct_end(state));
         self.formatter.dict_close(&mut self.writer)
+    }
+}
+
+#[doc(hidden)]
+pub struct DictEncoder<'a, K, V>
+    where K: 'a + Ord + ser::Serialize,
+          V: 'a + ser::Serialize,
+{
+    data: BTreeMap<&'a K, &'a V>,
+    prev_key: Option<&'a K>,
+}
+
+impl<'a, K, V> DictEncoder<'a, K, V>
+    where K: 'a + Ord + ser::Serialize,
+          V: ser::Serialize,
+{
+    pub fn new() -> Self {
+        DictEncoder {
+            data: BTreeMap::new(),
+            prev_key: None
+        }
+    }
+
+    pub fn add_key(&mut self, key: &'a K) {
+        self.prev_key = Some(&key);
+    }
+
+    pub fn add_value(&mut self, value: &'a V) {
+        // Note that prev_key should never be none here.
+        if let Some(ref key) = self.prev_key {
+            self.data.insert(key, &value);
+        }
+    }
+
+    pub fn finalize_encode<W>(&mut self, mut s: Serializer<W>) -> Result<()> where W: io::Write {
+        try!(s.formatter.dict_open(&mut s.writer));
+
+        for (k, v) in &self.data {
+            try!(k.serialize(&mut s));
+            try!(v.serialize(&mut s));
+        }
+        self.data.clear();
+        self.prev_key = None;
+
+        s.formatter.dict_close(&mut s.writer)
     }
 }
 
