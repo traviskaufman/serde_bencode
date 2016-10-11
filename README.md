@@ -44,7 +44,7 @@ Prints:
 
 ```
 original = Complex { s: "Hello, World!", i: 42, v: [Point { x: 1, y: 2 }, Point { x: 4, y: 7 }, Point { x: 8, y: 19 }] }
-serialized = d1:s13:Hello, World!1:ii42e1:vld1:xi1e1:yi2eed1:xi4e1:yi7eed1:xi8e1:yi19eeee
+serialized = d1:ii42e1:s13:Hello, World!1:vld1:xi1e1:yi2eed1:xi4e1:yi7eed1:xi8e1:yi19eeee
 deserialized = Complex { s: "Hello, World!", i: 42, v: [Point { x: 1, y: 2 }, Point { x: 4, y: 7 }, Point { x: 8, y: 19 }] }
 ```
 
