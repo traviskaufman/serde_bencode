@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::io;
+use std::str::FromStr;
 
 use itoa;
 use serde::de::Type;
@@ -21,7 +22,6 @@ pub struct Serializer<W> {
     formatter: Formatter,
 }
 
-/// TODO!!! Lexocographically-ordered dictionaries. Yuck. Use BTreeMap
 impl<W> Serializer<W>
     where W: io::Write
 {
@@ -31,10 +31,6 @@ impl<W> Serializer<W>
             writer: writer,
             formatter: formatter,
         }
-    }
-
-    pub fn into_inner(self) -> W {
-        self.writer
     }
 }
 
@@ -46,9 +42,9 @@ impl<W> ser::Serializer for Serializer<W>
     type SeqState = State;
     type TupleStructState = State;
     type TupleVariantState = State;
-    type MapState = State;
-    type StructState = State;
-    type StructVariantState = State;
+    type MapState = DictEncoder;
+    type StructState = DictEncoder;
+    type StructVariantState = DictEncoder;
 
     #[inline]
     fn serialize_bool(&mut self, _: bool) -> Result<()> {
@@ -279,46 +275,41 @@ impl<W> ser::Serializer for Serializer<W>
     }
 
     #[inline]
-    fn serialize_map(&mut self, len: Option<usize>) -> Result<State> {
-        if len == Some(0) {
-            try!(self.formatter.dict_open(&mut self.writer));
-            try!(self.formatter.dict_close(&mut self.writer));
-            Ok(State::Empty)
-        } else {
-            try!(self.formatter.dict_open(&mut self.writer));
-            Ok(State::First)
-        }
+    fn serialize_map(&mut self, _len: Option<usize>) -> Result<DictEncoder> {
+        Ok(DictEncoder::new())
     }
 
     #[inline]
-    fn serialize_map_key<T: ser::Serialize>(&mut self, state: &mut State, key: T) -> Result<()> {
-        *state = State::Rest;
-
-        // FIXME: Copy over MapKeySerializer?
-        key.serialize(self)
+    fn serialize_map_key<T: ser::Serialize>(&mut self,
+                                            state: &mut DictEncoder,
+                                            key: T)
+                                            -> Result<()> {
+        let sub_ser = try!(to_string(&key));
+        Ok((*state).add_key(sub_ser))
     }
 
     #[inline]
-    fn serialize_map_value<T: ser::Serialize>(&mut self, _: &mut State, value: T) -> Result<()> {
-        value.serialize(self)
+    fn serialize_map_value<T: ser::Serialize>(&mut self,
+                                              state: &mut DictEncoder,
+                                              value: T)
+                                              -> Result<()> {
+        let sub_ser = try!(to_string(&value));
+        Ok((*state).add_value(sub_ser))
     }
 
     #[inline]
-    fn serialize_map_end(&mut self, state: State) -> Result<()> {
-        match state {
-            State::Empty => Ok(()),
-            _ => self.formatter.dict_close(&mut self.writer),
-        }
+    fn serialize_map_end(&mut self, state: DictEncoder) -> Result<()> {
+        state.finalize_encode(self)
     }
 
     #[inline]
-    fn serialize_struct(&mut self, _name: &'static str, len: usize) -> Result<State> {
+    fn serialize_struct(&mut self, _name: &'static str, len: usize) -> Result<DictEncoder> {
         self.serialize_map(Some(len))
     }
 
     #[inline]
     fn serialize_struct_elt<V: ser::Serialize>(&mut self,
-                                               state: &mut State,
+                                               state: &mut DictEncoder,
                                                key: &'static str,
                                                value: V)
                                                -> Result<()> {
@@ -327,7 +318,7 @@ impl<W> ser::Serializer for Serializer<W>
     }
 
     #[inline]
-    fn serialize_struct_end(&mut self, state: State) -> Result<()> {
+    fn serialize_struct_end(&mut self, state: DictEncoder) -> Result<()> {
         self.serialize_map_end(state)
     }
 
@@ -337,7 +328,7 @@ impl<W> ser::Serializer for Serializer<W>
                                 _variant_index: usize,
                                 variant: &'static str,
                                 len: usize)
-                                -> Result<State> {
+                                -> Result<DictEncoder> {
         try!(self.formatter.dict_open(&mut self.writer));
         try!(self.serialize_str(variant));
         self.serialize_map(Some(len))
@@ -345,7 +336,7 @@ impl<W> ser::Serializer for Serializer<W>
 
     #[inline]
     fn serialize_struct_variant_elt<V: ser::Serialize>(&mut self,
-                                                       state: &mut State,
+                                                       state: &mut DictEncoder,
                                                        key: &'static str,
                                                        value: V)
                                                        -> Result<()> {
@@ -353,54 +344,53 @@ impl<W> ser::Serializer for Serializer<W>
     }
 
     #[inline]
-    fn serialize_struct_variant_end(&mut self, state: State) -> Result<()> {
+    fn serialize_struct_variant_end(&mut self, state: DictEncoder) -> Result<()> {
         try!(self.serialize_struct_end(state));
         self.formatter.dict_close(&mut self.writer)
     }
 }
 
 #[doc(hidden)]
-pub struct DictEncoder<'a, K, V>
-    where K: 'a + Ord + ser::Serialize,
-          V: 'a + ser::Serialize,
-{
-    data: BTreeMap<&'a K, &'a V>,
-    prev_key: Option<&'a K>,
+pub struct DictEncoder {
+    data: BTreeMap<String, String>,
+    prev_key: Option<String>,
 }
 
-impl<'a, K, V> DictEncoder<'a, K, V>
-    where K: 'a + Ord + ser::Serialize,
-          V: ser::Serialize,
-{
+impl DictEncoder {
     pub fn new() -> Self {
         DictEncoder {
             data: BTreeMap::new(),
-            prev_key: None
+            prev_key: None,
         }
     }
 
-    pub fn add_key(&mut self, key: &'a K) {
-        self.prev_key = Some(&key);
+    pub fn add_key(&mut self, key: String) {
+        self.prev_key = Some(key);
     }
 
-    pub fn add_value(&mut self, value: &'a V) {
-        // Note that prev_key should never be none here.
-        if let Some(ref key) = self.prev_key {
-            self.data.insert(key, &value);
+    pub fn add_value(&mut self, value: String) {
+        match self.prev_key {
+            Some(ref key) => {
+                self.data.insert(String::from_str(key).unwrap(), value);
+            }
+            None => (),
         }
     }
 
-    pub fn finalize_encode<W>(&mut self, mut s: Serializer<W>) -> Result<()> where W: io::Write {
+    pub fn is_empty(&self) -> bool {
+        self.data.len() == 0
+    }
+
+    pub fn finalize_encode<W>(&self, s: &mut Serializer<W>) -> Result<()>
+        where W: io::Write
+    {
         try!(s.formatter.dict_open(&mut s.writer));
-
         for (k, v) in &self.data {
-            try!(k.serialize(&mut s));
-            try!(v.serialize(&mut s));
+            try!(write!(s.writer, "{}", k));
+            try!(write!(s.writer, "{}", v));
         }
-        self.data.clear();
-        self.prev_key = None;
-
-        s.formatter.dict_close(&mut s.writer)
+        try!(s.formatter.dict_close(&mut s.writer));
+        Ok(())
     }
 }
 
