@@ -9,9 +9,8 @@ A [bencode](https://en.wikipedia.org/wiki/Bencode) serialization/deserialization
 
 ```rust
 extern crate serde;
-extern crate bencode;
+extern crate serde_bencode;
 
-// serde_types.in.rs
 #[derive(Serialize, Deserialize, Debug)]
 struct Point {
     x: i32,
@@ -33,9 +32,9 @@ fn main() {
         v: vec![Point{ x: 1, y: 2}, Point{ x: 4, y: 7}, Point{ x: 8, y: 19 }]
     };
     println!("original = {:?}", c);
-    let serialized = bencode::to_string(&c).unwrap();
+    let serialized = serde_bencode::to_string(&c).unwrap();
     println!("serialized = {}", serialized);
-    let deserialized: Complex = bencode::from_string(serialized).unwrap();
+    let deserialized: Complex = serde_bencode::from_string(serialized).unwrap();
     println!("deserialized = {:?}", deserialized);
 }
 ```
