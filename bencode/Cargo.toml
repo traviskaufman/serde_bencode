@@ -1,0 +1,13 @@
+[package]
+name = "serde_bencode"
+version = "0.1.0"
+authors = ["Travis Kaufman <travis.kaufman@gmail.com>"]
+description = "Bencode serialization / deserialization for rust, powered by serde"
+repository = "https://github.com/traviskaufman/serde_bencode.git"
+readme = "../README.md"
+keywords = ["bittorrent", "bencode", "serialization", "serde"]
+license = "MIT"
+
+[dependencies]
+serde = "^0.8.8"
+itoa = "^0.1.1"
