@@ -1,5 +1,7 @@
 # Bencode
 
+[![Build Status](https://travis-ci.org/traviskaufman/serde_bencode.svg?branch=master)](https://travis-ci.org/traviskaufman/serde_bencode)
+
 A [bencode](https://en.wikipedia.org/wiki/Bencode) serialization/deserialization library for Rust using
 [serde](https://serde.rs/).
 
