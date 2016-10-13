@@ -6,4 +6,4 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
-script: (cd bencode_tests && cargo test)
+script: make test
