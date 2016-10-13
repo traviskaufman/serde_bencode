@@ -26,10 +26,10 @@ impl<W> Serializer<W>
     where W: io::Write
 {
     #[inline]
-    pub fn new(writer: W, formatter: Formatter) -> Self {
+    pub fn new(writer: W) -> Self {
         Serializer {
             writer: writer,
-            formatter: formatter,
+            formatter: Formatter,
         }
     }
 }
@@ -140,7 +140,8 @@ impl<W> ser::Serializer for Serializer<W>
 
     #[inline]
     fn serialize_unit_struct(&mut self, _name: &'static str) -> Result<()> {
-        self.serialize_map(Some(0)).map(|_| ())
+        let state = try!(self.serialize_map(Some(0)));
+        self.serialize_map_end(state)
     }
 
     #[inline]
@@ -402,8 +403,8 @@ pub enum State {
     Rest,
 }
 
-#[derive(Clone, Debug)]
-pub struct Formatter;
+#[derive(Debug)]
+struct Formatter;
 
 impl Formatter {
     pub fn string<W>(&self, w: &mut W, s: &str) -> Result<()>
@@ -440,7 +441,7 @@ impl Formatter {
 pub fn to_writer<W: ?Sized + io::Write, T: ser::Serialize>(writer: &mut W,
                                                            value: &T)
                                                            -> Result<()> {
-    let mut ser = Serializer::new(writer, Formatter);
+    let mut ser = Serializer::new(writer);
     try!(value.serialize(&mut ser));
     Ok(())
 }
@@ -471,71 +472,71 @@ mod tests {
     #[test]
     fn test_serialize_isize() {
         let x: isize = 10;
-        assert_eq!(to_string(&x).unwrap(), "i10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i10e");
         let x: isize = -10;
-        assert_eq!(to_string(&x).unwrap(), "i-10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-10e");
     }
 
     #[test]
     fn test_serialize_i8() {
         let x: i8 = 10;
-        assert_eq!(to_string(&x).unwrap(), "i10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i10e");
         let x: i8 = -10;
-        assert_eq!(to_string(&x).unwrap(), "i-10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-10e");
     }
 
     #[test]
     fn test_serialize_i16() {
         let x: i16 = 10;
-        assert_eq!(to_string(&x).unwrap(), "i10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i10e");
         let x: i16 = -10;
-        assert_eq!(to_string(&x).unwrap(), "i-10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-10e");
     }
 
     #[test]
     fn test_serialize_i32() {
         let x: i32 = 10;
-        assert_eq!(to_string(&x).unwrap(), "i10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i10e");
         let x: i32 = -10;
-        assert_eq!(to_string(&x).unwrap(), "i-10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-10e");
     }
 
     #[test]
     fn test_serialize_i64() {
         let x: i64 = 10;
-        assert_eq!(to_string(&x).unwrap(), "i10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i10e");
         let x: i64 = -10;
-        assert_eq!(to_string(&x).unwrap(), "i-10e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-10e");
     }
 
     #[test]
     fn test_serialize_usize() {
         let x: usize = 16;
-        assert_eq!(to_string(&x).unwrap(), "i16e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i16e");
     }
 
     #[test]
     fn test_serialize_u8() {
         let x: u8 = 16;
-        assert_eq!(to_string(&x).unwrap(), "i16e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i16e");
     }
 
     #[test]
     fn test_serialize_u16() {
         let x: u16 = 16;
-        assert_eq!(to_string(&x).unwrap(), "i16e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i16e");
     }
 
     #[test]
     fn test_serialize_u32() {
         let x: u32 = 16;
-        assert_eq!(to_string(&x).unwrap(), "i16e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i16e");
     }
 
     #[test]
     fn test_serialize_u64() {
         let x: u64 = 16;
-        assert_eq!(to_string(&x).unwrap(), "i16e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i16e");
 
         let x: u64 = (i64::max_value() as u64) + 1;
         assert!(match to_string(&x) {
@@ -549,10 +550,10 @@ mod tests {
         use std::f32::consts;
 
         let x = consts::PI;
-        assert_eq!(to_string(&x).unwrap(), "i3e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i3e");
 
         let x: f32 = -x;
-        assert_eq!(to_string(&x).unwrap(), "i-3e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-3e");
     }
 
     #[test]
@@ -560,24 +561,45 @@ mod tests {
         use std::f64::consts;
 
         let x = consts::PI;
-        assert_eq!(to_string(&x).unwrap(), "i3e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i3e");
 
         let x: f64 = -x;
-        assert_eq!(to_string(&x).unwrap(), "i-3e".to_string());
+        assert_eq!(to_string(&x).unwrap(), "i-3e");
     }
 
     #[test]
     fn test_serialize_char() {
         let x = 'c';
-        assert_eq!(to_string(&x).unwrap(), "1:c".to_string());
+        assert_eq!(to_string(&x).unwrap(), "1:c");
     }
 
     #[test]
     fn test_serialize_str() {
         let x = "Hello, World!";
-        assert_eq!(to_string(&x).unwrap(), "13:Hello, World!".to_string());
+        assert_eq!(to_string(&x).unwrap(), "13:Hello, World!");
 
         let x = "";
-        assert_eq!(to_string(&x).unwrap(), "0:".to_string());
+        assert_eq!(to_string(&x).unwrap(), "0:");
+    }
+
+    #[test]
+    fn test_serialize_bytes() {
+        let x: Vec<u8> = vec![1, 2, 3];
+        assert_eq!(to_string(&&x).unwrap(), "li1ei2ei3ee");
+    }
+
+    #[test]
+    fn test_serialize_unit() {
+        let x = ();
+        assert_eq!(to_string(&x).unwrap(), "");
+    }
+
+    #[test]
+    fn test_serialize_unit_struct() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(4);
+        super::Serializer::new(&mut w).serialize_unit_struct("Foo").expect("Failed to serialize unit struct");
+        assert_eq!(String::from_utf8(w).unwrap(), "de");
     }
 }
