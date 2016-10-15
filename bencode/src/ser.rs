@@ -140,17 +140,17 @@ impl<W> ser::Serializer for Serializer<W>
 
     #[inline]
     fn serialize_unit_struct(&mut self, _name: &'static str) -> Result<()> {
-        let state = try!(self.serialize_map(Some(0)));
-        self.serialize_map_end(state)
+        try!(self.formatter.dict_open(&mut self.writer));
+        self.formatter.dict_close(&mut self.writer)
     }
 
     #[inline]
     fn serialize_unit_variant(&mut self,
                               _name: &'static str,
                               _variant_index: usize,
-                              _variant: &'static str)
+                              variant: &'static str)
                               -> Result<()> {
-        self.serialize_unit()
+        self.serialize_str(variant)
     }
 
     #[inline]
@@ -599,7 +599,54 @@ mod tests {
         use serde::Serializer;
 
         let mut w = Vec::with_capacity(4);
-        super::Serializer::new(&mut w).serialize_unit_struct("Foo").expect("Failed to serialize unit struct");
+        super::Serializer::new(&mut w)
+            .serialize_unit_struct("Foo")
+            .expect("Failed to serialize unit struct");
         assert_eq!(String::from_utf8(w).unwrap(), "de");
+    }
+
+    #[test]
+    fn test_serialize_unit_variant() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(16);
+        super::Serializer::new(&mut w)
+            .serialize_unit_variant("Enum", 0, "Variant")
+            .expect("Failed to serialize unit struct");
+        assert_eq!(String::from_utf8(w).unwrap(), "7:Variant");
+    }
+
+    #[test]
+    fn test_serialize_newtype_struct() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        super::Serializer::new(&mut w)
+            .serialize_newtype_struct("NumberWrapper", 75)
+            .expect("Failed to serialize newtype struct");
+        assert_eq!(String::from_utf8(w).unwrap(), "i75e");
+    }
+
+    #[test]
+    fn test_serialize_newtype_variant() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(64);
+        super::Serializer::new(&mut w)
+            .serialize_newtype_variant("Enum", 0, "Variant", "Variant Value")
+            .expect("Failed to serialize newtype variant");
+        assert_eq!(String::from_utf8(w).unwrap(), "d7:Variant13:Variant Valuee");
+    }
+
+    #[test]
+    fn test_serialize_none() {
+        let x: Option<i32> = None;
+        assert_eq!(to_string(&x).unwrap(), "");
+    }
+
+    #[test]
+    fn test_serialize_some() {
+        let x = Some("Hello");
+        assert_eq!(to_string(&x).unwrap(), "5:Hello");
     }
 }
