@@ -370,11 +370,8 @@ impl DictEncoder {
     }
 
     pub fn add_value(&mut self, value: String) {
-        match self.prev_key {
-            Some(ref key) => {
-                self.data.insert(String::from_str(key).unwrap(), value);
-            }
-            None => (),
+        if let Some(ref key) = self.prev_key {
+            self.data.insert(String::from_str(key).unwrap(), value);
         }
     }
 
