@@ -789,4 +789,28 @@ mod tests {
         assert!(state == State::Rest);
         assert_eq!(String::from_utf8(w).unwrap(), "i10e");
     }
+
+    #[test]
+    fn test_serialize_tuple_struct_end() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        let state = State::Rest;
+        super::Serializer::new(&mut w)
+            .serialize_tuple_struct_end(state)
+            .expect("Failed to serialize seq end");
+        assert_eq!(String::from_utf8(w).unwrap(), "e");
+    }
+
+    #[test]
+    fn test_serialize_tuple_variant() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        let state = super::Serializer::new(&mut w)
+            .serialize_tuple_variant("Enum", 0, "Variant", 2)
+            .expect("Failed to serialize tuple variant");
+        assert!(state == State::First);
+        assert_eq!(String::from_utf8(w).unwrap(), "d7:Variantl");
+    }
 }
