@@ -362,28 +362,24 @@ pub struct DictEncoder {
 }
 
 impl DictEncoder {
-    pub fn new() -> Self {
+    fn new() -> Self {
         DictEncoder {
             data: BTreeMap::new(),
             prev_key: None,
         }
     }
 
-    pub fn add_key(&mut self, key: String) {
+    fn add_key(&mut self, key: String) {
         self.prev_key = Some(key);
     }
 
-    pub fn add_value(&mut self, value: String) {
+    fn add_value(&mut self, value: String) {
         if let Some(ref key) = self.prev_key {
             self.data.insert(String::from_str(key).unwrap(), value);
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.data.len() == 0
-    }
-
-    pub fn finalize_encode<W>(&self, s: &mut Serializer<W>) -> Result<()>
+    fn finalize_encode<W>(&self, s: &mut Serializer<W>) -> Result<()>
         where W: io::Write
     {
         try!(s.formatter.dict_open(&mut s.writer));
@@ -408,31 +404,31 @@ pub enum State {
 struct Formatter;
 
 impl Formatter {
-    pub fn string<W>(&self, w: &mut W, s: &str) -> Result<()>
+    fn string<W>(&self, w: &mut W, s: &str) -> Result<()>
         where W: io::Write
     {
         write!(w, "{}:{}", s.len(), s).map_err(From::from)
     }
 
-    pub fn dict_open<W>(&self, w: &mut W) -> Result<()>
+    fn dict_open<W>(&self, w: &mut W) -> Result<()>
         where W: io::Write
     {
         write!(w, "d").map_err(From::from)
     }
 
-    pub fn dict_close<W>(&self, w: &mut W) -> Result<()>
+    fn dict_close<W>(&self, w: &mut W) -> Result<()>
         where W: io::Write
     {
         write!(w, "e").map_err(From::from)
     }
 
-    pub fn list_open<W>(&self, w: &mut W) -> Result<()>
+    fn list_open<W>(&self, w: &mut W) -> Result<()>
         where W: io::Write
     {
         write!(w, "l").map_err(From::from)
     }
 
-    pub fn list_close<W>(&self, w: &mut W) -> Result<()>
+    fn list_close<W>(&self, w: &mut W) -> Result<()>
         where W: io::Write
     {
         write!(w, "e").map_err(From::from)
