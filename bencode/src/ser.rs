@@ -106,12 +106,16 @@ impl<W> ser::Serializer for Serializer<W>
 
     #[inline]
     fn serialize_f32(&mut self, v: f32) -> Result<()> {
-        bencode_int!(&mut self.writer, v as i64)
+        self.serialize_f64(v as f64)
     }
 
     #[inline]
     fn serialize_f64(&mut self, v: f64) -> Result<()> {
-        bencode_int!(&mut self.writer, v as i64)
+        if v.is_finite() {
+            bencode_int!(&mut self.writer, v as i64)
+        } else {
+            Err(Error::Ser(ErrorCode::NonFiniteNumber(v)))
+        }
     }
 
     #[inline]
@@ -544,24 +548,62 @@ mod tests {
 
     #[test]
     fn test_serialize_f32() {
-        use std::f32::consts;
+        use std::f32::consts::PI;
+        use std::f32::{INFINITY, NEG_INFINITY, NAN};
 
-        let x = consts::PI;
+        let x = PI;
         assert_eq!(to_string(&x).unwrap(), "i3e");
 
         let x: f32 = -x;
         assert_eq!(to_string(&x).unwrap(), "i-3e");
+
+        let x = INFINITY;
+        assert!(match to_string(&x) {
+            Err(_) => true,
+            _ => false,
+        });
+
+        let x = NEG_INFINITY;
+        assert!(match to_string(&x) {
+            Err(_) => true,
+            _ => false,
+        });
+
+        let x = NAN;
+        assert!(match to_string(&x) {
+            Err(_) => true,
+            _ => false,
+        });
     }
 
     #[test]
     fn test_serialize_f64() {
-        use std::f64::consts;
+        use std::f64::consts::PI;
+        use std::f64::{INFINITY, NEG_INFINITY, NAN};
 
-        let x = consts::PI;
+        let x = PI;
         assert_eq!(to_string(&x).unwrap(), "i3e");
 
         let x: f64 = -x;
         assert_eq!(to_string(&x).unwrap(), "i-3e");
+
+        let x = INFINITY;
+        assert!(match to_string(&x) {
+            Err(_) => true,
+            _ => false,
+        });
+
+        let x = NEG_INFINITY;
+        assert!(match to_string(&x) {
+            Err(_) => true,
+            _ => false,
+        });
+
+        let x = NAN;
+        assert!(match to_string(&x) {
+            Err(_) => true,
+            _ => false,
+        });
     }
 
     #[test]
@@ -645,5 +687,110 @@ mod tests {
     fn test_serialize_some() {
         let x = Some("Hello");
         assert_eq!(to_string(&x).unwrap(), "5:Hello");
+    }
+
+    #[test]
+    fn test_serialize_seq() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(4);
+        let state =
+            super::Serializer::new(&mut w).serialize_seq(None).expect("Failed to serialize seq");
+        assert!(state == State::First);
+        assert_eq!(String::from_utf8(w).unwrap(), "l");
+
+        let mut w = Vec::with_capacity(4);
+        let state =
+            super::Serializer::new(&mut w).serialize_seq(Some(1)).expect("Failed to serialize seq");
+        assert!(state == State::First);
+        assert_eq!(String::from_utf8(w).unwrap(), "l");
+
+        let mut w = Vec::with_capacity(4);
+        let state =
+            super::Serializer::new(&mut w).serialize_seq(Some(0)).expect("Failed to serialize seq");
+        assert!(state == State::Empty);
+        assert_eq!(String::from_utf8(w).unwrap(), "le");
+    }
+
+    #[test]
+    fn test_serialize_seq_elt() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        let mut state = State::First;
+        super::Serializer::new(&mut w)
+            .serialize_seq_elt(&mut state, 10)
+            .expect("Failed to serialize seq element");
+        assert!(state == State::Rest);
+        assert_eq!(String::from_utf8(w).unwrap(), "i10e");
+    }
+
+    #[test]
+    fn test_serialize_seq_end() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        let state = State::Rest;
+        super::Serializer::new(&mut w)
+            .serialize_seq_end(state)
+            .expect("Failed to serialize seq end");
+        assert_eq!(String::from_utf8(w).unwrap(), "e");
+
+        let mut w = Vec::with_capacity(8);
+        let state = State::Empty;
+        super::Serializer::new(&mut w)
+            .serialize_seq_end(state)
+            .expect("Failed to serialize seq end");
+        assert_eq!(String::from_utf8(w).unwrap(), "");
+    }
+
+    #[test]
+    fn test_serialize_seq_fixed_size() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(4);
+        let state = super::Serializer::new(&mut w)
+            .serialize_seq_fixed_size(1)
+            .expect("Failed to serialize seq");
+        assert!(state == State::First);
+        assert_eq!(String::from_utf8(w).unwrap(), "l");
+
+        let mut w = Vec::with_capacity(4);
+        let state = super::Serializer::new(&mut w)
+            .serialize_seq_fixed_size(0)
+            .expect("Failed to serialize seq");
+        assert!(state == State::Empty);
+        assert_eq!(String::from_utf8(w).unwrap(), "le");
+    }
+
+    #[test]
+    fn test_serialize_tuple_all_methods() {
+        let x = (1, "Hello");
+        assert_eq!(to_string(&x).unwrap(), "li1e5:Helloe");
+    }
+
+    #[test]
+    fn test_serialize_tuple_struct() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        let state = super::Serializer::new(&mut w)
+            .serialize_tuple_struct("Struct", 2)
+            .expect("Failed to serialize tuple struct");
+        assert!(state == State::First);
+        assert_eq!(String::from_utf8(w).unwrap(), "l");
+    }
+
+    #[test]
+    fn test_serialize_tuple_struct_elt() {
+        use serde::Serializer;
+
+        let mut w = Vec::with_capacity(8);
+        let mut state = State::First;
+        super::Serializer::new(&mut w)
+            .serialize_tuple_struct_elt(&mut state, 10)
+            .expect("Failed to serialize tuple struct element");
+        assert!(state == State::Rest);
+        assert_eq!(String::from_utf8(w).unwrap(), "i10e");
     }
 }

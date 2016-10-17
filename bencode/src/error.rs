@@ -22,6 +22,8 @@ pub enum ErrorCode {
     UnsupportedType(de::Type),
     /// Used when trying to serialize a number that cannot be bencoded
     NumberOutOfRange(u64),
+    /// Used when trying to serialize a non-finite number
+    NonFiniteNumber(f64),
     /// Catchall syntax for error messages
     Custom(String),
 }
@@ -34,6 +36,7 @@ impl fmt::Display for ErrorCode {
             ErrorCode::UnexpectedTrailingChars => write!(f, "Unexpected trailing characters"),
             ErrorCode::UnsupportedType(ref t) => write!(f, "Cannot serialize type {}", t),
             ErrorCode::NumberOutOfRange(ref n) => write!(f, "Number {} out of range", n),
+            ErrorCode::NonFiniteNumber(ref n) => write!(f, "Non-finite number encountered: {}", n),
             ErrorCode::Custom(ref msg) => write!(f, "{}", msg),
         }
     }
